@@ -1,15 +1,27 @@
-import argparse
-import copy
-import os
-import random
-import time
+"""
+本代码是一个完整的训练过程，用于训练3D物体检测模型。主要包括:
+    1.解析配置文件
+    2.设置运行环境
+    3.构建数据集和模型
+    4.进行训练，并在过程中记录日志
+"""
+
+# Python标准库
+import argparse     # argparse      命令行选项、参数和子命令解析器，该模块可以让人轻松编写用户友好的命令行接口
+import copy         # copy          浅层和深层复制操作
+import os           # os            多种操作系统接口，该模块提供了一种使用与操作系统相关的功能的便捷式途径（如创建目录、获取系统环境变量等）
+import random       # random        生成伪随机数，该模块实现了各种分布的伪随机数生成器
+import time         # time          时间的访问和转换，该模块提供了各种与时间相关的函数
 
 import numpy as np
 import torch
 from mmcv import Config
+
+# torchpack 主要用于分布式计算
 from torchpack import distributed as dist
 from torchpack.environ import auto_set_run_dir, set_run_dir
 from torchpack.utils.config import configs
+
 
 from mmdet3d.apis import train_model
 from mmdet3d.datasets import build_dataset
@@ -17,14 +29,21 @@ from mmdet3d.models import build_model
 from mmdet3d.utils import get_root_logger, convert_sync_batchnorm, recursive_eval
 
 
+# For LiDAR-only detector, please run:
+# torchpack dist-run -np 8 python tools/train.py configs/nuscenes/det/transfusion/secfpn/lidar/voxelnet_0p075.yaml
+
 def main():
     dist.init()
 
+    # 解析命令行参数
     parser = argparse.ArgumentParser()
     parser.add_argument("config", metavar="FILE", help="config file")
     parser.add_argument("--run-dir", metavar="DIR", help="run directory")
     args, opts = parser.parse_known_args()
 
+    # 加载配置文件
+    # 使用mmcv.Config加载配置文件，并通过recursive=True参数递归地加载嵌套的配置。
+    # 然后使用opts更新配置，opts存储的是命令行中未被解析的参数。
     configs.load(args.config, recursive=True)
     configs.update(opts)
 

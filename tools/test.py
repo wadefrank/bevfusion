@@ -1,7 +1,14 @@
-import argparse
-import copy
-import os
-import warnings
+"""
+这份代码主要用于测试模型在测试数据集上的性能，执行相应的结果保存、格式化和评估等操作。
+它首先解析命令行参数，加载配置文件，根据配置构建数据集和加载器，构建模型并加载权重，然后进行推理并根据配置处理结果。
+最后，如果启用了评估操作，它将根据配置进行评估。
+"""
+
+# Python标准库
+import argparse     # argparse      命令行选项、参数和子命令解析器，该模块可以让人轻松编写用户友好的命令行接口
+import copy         # copy          浅层和深层复制操作
+import os           # os            多种操作系统接口，该模块提供了一种使用与操作系统相关的功能的便捷式途径（如创建目录、获取系统环境变量等）
+import warnings     # warning       警告信息的控制，用于发布警告
 
 import mmcv
 import torch
@@ -18,7 +25,7 @@ from mmdet.apis import multi_gpu_test, set_random_seed
 from mmdet.datasets import replace_ImageToTensor
 from mmdet3d.utils import recursive_eval
 
-
+# 解析命令行参数
 def parse_args():
     parser = argparse.ArgumentParser(description="MMDet test (and eval) a model")
     parser.add_argument("config", help="test config file path")
@@ -110,29 +117,38 @@ def parse_args():
     return args
 
 
+
+# 主函数
 def main():
+    # 解析命令行参数
     args = parse_args()
     dist.init()
 
     torch.backends.cudnn.benchmark = True
     torch.cuda.set_device(dist.local_rank())
 
+    # 确保至少指定一种操作（保存/评估/格式化/展示结果）
     assert args.out or args.eval or args.format_only or args.show or args.show_dir, (
         "Please specify at least one operation (save/eval/format/show the "
         'results / save the results) with the argument "--out", "--eval"'
         ', "--format-only", "--show" or "--show-dir"'
     )
 
+
+    # 避免同时指定 --eval 和 --format_only 参数
     if args.eval and args.format_only:
         raise ValueError("--eval and --format_only cannot be both specified")
 
+    # 输出文件必须为 pkl 文件
     if args.out is not None and not args.out.endswith((".pkl", ".pickle")):
         raise ValueError("The output file must be a pkl file.")
 
+    # 加载配置文件
     configs.load(args.config, recursive=True)
     cfg = Config(recursive_eval(configs), filename=args.config)
     print(cfg)
 
+    # 根据参数中的配置选项更新配置
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
     # set cudnn_benchmark
